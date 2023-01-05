@@ -3,6 +3,7 @@ import streamlit as st
 import yfinance as yf
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 from datetime import date
 import numpy as np
 import matplotlib.pylab as plt
@@ -10,6 +11,7 @@ import base64
 from stocks import runStocks
 from main import runSentiment
 from PIL import Image
+from subplots import get_candlestick_plot
 st.set_page_config(layout="wide")
 
 st.title("FinAdvisor")
@@ -76,11 +78,13 @@ elif tabs == 'Acciones':
 
     tickerDf = tickerData.history(period='max')
     tickerDfToday = tickerData.history(period='1d')
+    tickerDfYes = tickerData.history(period='2d')
 
     if tickerDfToday.empty:
         df2 = {'Open': ['No data found'], 'Close': ['No data found'], 'High': ['No data found'], 'Low': ['No data found'], 'Volume': ['No data found'], 'Dividends': ['No data found']}
         tickerDfToday = df2
 
+    tickerDf = tickerDf.reset_index(level=0)
     st.write("""
     ### """ + symbols[result.index(tickerSymbol)] + """
     #### """ + names[result.index(tickerSymbol)])
@@ -88,50 +92,93 @@ elif tabs == 'Acciones':
     with open('elements.css') as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-    with st.container():
-        
-        # st.text(tickerDfToday)
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Precio Apertura", round(tickerDfToday['Open'][0],5), "1.2 °F")
-        col2.metric("Precio Cierre", round(tickerDfToday['Close'][0],5), "-8%")
-        col3.metric("Precio Maximo", round(tickerDfToday['High'][0],5), "4%")
 
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Precio Minimo", round(tickerDfToday['Low'][0],5), "1.2 °F")
-        col2.metric("Precio de Volumen", round(tickerDfToday['Volume'][0],5) , "-8%")
-        col3.metric("Precio de Dividendos", round(tickerDfToday['Dividends'][0], 5), "4%")
     
- 
+    
+    
+    tab1, tab2, tab3 = st.tabs(["Precios", "Detalles", "Gráficas"])
+    with st.container():
+        with tab1:
+            with st.container():
+                st.header("Precios")
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Precio Apertura", round(tickerDfToday['Open'][0],5), (str((round(100-((round(tickerDfYes['Open'][0],5)*100)/round(tickerDfToday['Open'][0],5)), 5)))+"%") )
+                col2.metric("Precio Cierre", round(tickerDfToday['Close'][0],5), (str((round(100-((round(tickerDfYes['Close'][0],5)*100)/round(tickerDfToday['Open'][0],5)), 5)))+"%"))
+                col3.metric("Precio Maximo", round(tickerDfToday['High'][0],5), (str((round(100-((round(tickerDfYes['High'][0],5)*100)/round(tickerDfToday['Open'][0],5)), 5)))+"%"))
 
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Precio Minimo", round(tickerDfToday['Low'][0],5), (str((round(100-((round(tickerDfYes['Low'][0],5)*100)/round(tickerDfToday['Open'][0],5)), 5)))+"%"))
+                col2.metric("Volumen", round(tickerDfToday['Volume'][0],5) , (str((round(100-((round(tickerDfYes['Volume'][0],5)*100)/round(tickerDfToday['Open'][0],5)), 5)))+"%"))
+                col3.metric("Precio de Dividendos", round(tickerDfToday['Dividends'][0], 5), (str((round(100-((round(tickerDfYes['Dividends'][0],5)*100)/round(tickerDfToday['Open'][0],5)), 5)))+"%"))
+                
 
+        with tab2:
+            with st.container():
+                st.header("Detalles")
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Nombre Compañia", names[result.index(tickerSymbol)], "Nombre Completo")
+                col2.metric("Symbol", symbols[result.index(tickerSymbol)] , "Simbolo de Ticker")
+                col3.metric("Nombre de Security", tickers['Security Name'][result.index(tickerSymbol)], "")
+                
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Categoría de Mercado", tickers['Market Category'][result.index(tickerSymbol)], "")
+                col2.metric("Test Issue", tickers['Test Issue'][result.index(tickerSymbol)], "")
+                col3.metric("Estado Financiero", tickers['Financial Status'][result.index(tickerSymbol)], "")
+
+                
+
+        with tab3:
+            with st.container():
+                st.header("Gráficas")
+
+                days_to_plot = st.slider(
+                    'Días a Gráficar', 
+                    min_value = 1,
+                    max_value = 300,
+                    value = 120,
+                )
+                ma1 = st.number_input(
+                    'Promedio Modificable 1',
+                    value = 10,
+                    min_value = 1,
+                    max_value = 120,
+                    step = 1,    
+                )
+                ma2 = st.number_input(
+                    'Promedio Modificable 2',
+                    value = 20,
+                    min_value = 1,
+                    max_value = 120,
+                    step = 1,    
+                )
+
+                # Get the dataframe and add the moving averages
+                df = tickerDf
+                df[f'{ma1}_ma'] = df['Close'].rolling(ma1).mean()
+                df[f'{ma2}_ma'] = df['Close'].rolling(ma2).mean()
+                df = df[-days_to_plot:]
+                
+                st.plotly_chart(
+                get_candlestick_plot(df, ma1, ma2, tickerSymbol),
+                use_container_width = True,
+                )
+
+                st.line_chart(tickerDf.Dividends)
+
+                #st.line_chart(tickerDf.Stock)
+                st.line_chart(tickerDf['Stock Splits'])
+
+                
+        # st.text(tickerDfToday)
+
+    
+
+    # Display the plotly chart on the dashboard
+    
    
-    # display company details
-    st.write("""
-    ### Details:
-    - Company Name :
-    """,names[result.index(tickerSymbol)], """
-    - Symbol  :
-    """,symbols[result.index(tickerSymbol)], """
-    - Security Name  :
-    """,tickers['Security Name'][result.index(tickerSymbol)] , """
-    - Market Category  :
-    """,tickers['Market Category'][result.index(tickerSymbol)], """
-    - Test Issue  :
-    """,tickers['Test Issue'][result.index(tickerSymbol)] , """
-    - Financial Status  :
-    """,tickers['Financial Status'][result.index(tickerSymbol)])
 
-    st.line_chart(tickerDf.High)
-    st.line_chart(tickerDf.Low)
-
-    st.line_chart(tickerDf.Open)
-    st.line_chart(tickerDf.Close)
-
-    st.line_chart(tickerDf.Volume)
-    st.line_chart(tickerDf.Dividends)
-
-    # st.line_chart(tickerDf.Stock)
-    st.line_chart(tickerDf['Stock Splits'])
+    
+    
 
 elif tabs == 'Noticias':
     runStocks()
