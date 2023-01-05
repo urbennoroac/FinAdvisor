@@ -5,7 +5,6 @@ import base64
 from stocks import runStocks
 from main import runSentiment
 from PIL import Image
-from streamlit_elements import elements, mui, html, dashboard, editor, lazy, sync
 
 
 hide_streamlit_style = """

@@ -17,8 +17,7 @@ def runStocks():
     from datetime import datetime
     import os
 
-    #st.set_page_config(page_title = "Bohmian's Stock News Sentiment Analyzer", layout = "wide")
-
+    st.markdown('<style>' + open('./style.css').read() + '</style>', unsafe_allow_html=True)
 
     def get_news(ticker):
         url = finviz_url + ticker
@@ -60,7 +59,7 @@ def runStocks():
                 pass
                 
         # Set column names
-        columns = ['date', 'time', 'headline']
+        columns = ['date', 'time', 'Encabezado']
         # Convert the parsed_news list into a DataFrame called 'parsed_and_scored_news'
         parsed_news_df = pd.DataFrame(parsed_news, columns=columns)        
         # Create a pandas datetime object from the strings in 'date' and 'time' column
@@ -75,7 +74,7 @@ def runStocks():
         vader = SentimentIntensityAnalyzer()
         
         # Iterate through the headlines and get the polarity scores using vader
-        scores = parsed_news_df['headline'].apply(vader.polarity_scores).tolist()
+        scores = parsed_news_df['Encabezado'].apply(vader.polarity_scores).tolist()
 
         # Convert the 'scores' list of dicts into a DataFrame
         scores_df = pd.DataFrame(scores)
@@ -94,7 +93,7 @@ def runStocks():
         mean_scores = parsed_and_scored_news.resample('H').mean()
 
         # Plot a bar chart with plotly
-        fig = px.bar(mean_scores, x=mean_scores.index, y='sentiment_score', title = ticker + ' Hourly Sentiment Scores')
+        fig = px.bar(mean_scores, x=mean_scores.index, y='sentiment_score', title = ticker + ' Sentiment Scores por Hora')
         return fig # instead of using fig.show(), we return fig and turn it into a graphjson object for displaying in web page later
 
     def plot_daily_sentiment(parsed_and_scored_news, ticker):
@@ -103,42 +102,52 @@ def runStocks():
         mean_scores = parsed_and_scored_news.resample('D').mean()
 
         # Plot a bar chart with plotly
-        fig = px.bar(mean_scores, x=mean_scores.index, y='sentiment_score', title = ticker + ' Daily Sentiment Scores')
+        fig = px.bar(mean_scores, x=mean_scores.index, y='sentiment_score', title = ticker + ' Sentiment Scores por Dia')
         return fig # instead of using fig.show(), we return fig and turn it into a graphjson object for displaying in web page later
 
     # for extracting data from finviz
     finviz_url = 'https://finviz.com/quote.ashx?t='
 
 
-    st.header("Financial Sentiment Analyzer")
+    st.header("Ánalisis de Sentimientos en Noticias")
 
-    ticker = st.text_input('Enter Stock Ticker', '').upper()
+    ticker = st.text_input('Ingresa el Ticker de la acción', 'AAPL').upper()
 
     df = pd.DataFrame({'datetime': datetime.now(), 'ticker': ticker}, index = [0])
 
 
     try:
-        st.subheader("Hourly and Daily Sentiment of {} Stock".format(ticker))
-        news_table = get_news(ticker)
-        parsed_news_df = parse_news(news_table)
-        print(parsed_news_df)
-        parsed_and_scored_news = score_news(parsed_news_df)
-        fig_hourly = plot_hourly_sentiment(parsed_and_scored_news, ticker)
-        fig_daily = plot_daily_sentiment(parsed_and_scored_news, ticker) 
-        
-        st.plotly_chart(fig_hourly)
-        st.plotly_chart(fig_daily)
-
+        st.subheader("Valor de Sentimientos (Hora/Día) - {} Stock".format(ticker))
         description = """
             The above chart averages the sentiment scores of {} stock hourly and daily.
             The table below gives each of the most recent headlines of the stock and the negative, neutral, positive and an aggregated sentiment score.
             The news headlines are obtained from the FinViz website.
             Sentiments are given by the nltk.sentiment.vader Python library.
             """.format(ticker)
-            
-        st.write(description)	 
-        st.table(parsed_and_scored_news)
+        st.write(description)
+        tab1, tab2, tab3 = st.tabs(["Encabezados Noticias", "Sentimientos por Hora", "Sentimientos por Día"])
+        news_table = get_news(ticker)
+        parsed_news_df = parse_news(news_table)
+        #print(parsed_news_df)
+        parsed_and_scored_news = score_news(parsed_news_df)
+        fig_hourly = plot_hourly_sentiment(parsed_and_scored_news, ticker)
+        fig_daily = plot_daily_sentiment(parsed_and_scored_news, ticker) 
         
+        with tab1:
+            with st.container():
+                st.header("Encabezados Noticias")
+                st.dataframe(parsed_and_scored_news)
+
+        with tab2:
+            with st.container():
+                st.header("Sentimientos por Hora")
+                st.plotly_chart(fig_hourly)
+
+        with tab3:
+            with st.container():
+                st.header("Sentimientos por Día")
+                st.plotly_chart(fig_daily)
+                    
     except Exception as e:
         print(str(e))
         st.write("Enter a correct stock ticker, e.g. 'AAPL' above and hit Enter.")	
