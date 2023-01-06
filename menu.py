@@ -3,28 +3,23 @@ import streamlit as st
 import yfinance as yf
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
+
 from datetime import date
-import numpy as np
-import matplotlib.pylab as plt
 import base64
 from stocks import runStocks
-from main import runSentiment
+from sentiment_twitter import runSentiment
 from PIL import Image
-from subplots import get_candlestick_plot
-st.set_page_config(layout="wide")
 
-st.title("FinAdvisor")
+from subplots import get_candlestick_plot
+img2 = Image.open('logos/logo-no-background2.png')
+img_nltk= Image.open('logos/nltk.png')
+st.set_page_config(page_title = 'FinAdvisor', page_icon = img2, layout="wide")
+
 st.markdown('<style>' + open('./style.css').read() + '</style>', unsafe_allow_html=True)
 
+
 def set_bg_hack(main_bg):
-    '''
-    A function to unpack an image from root folder and set as bg.
- 
-    Returns
-    -------
-    The background.
-    '''
+    
     # set bg name
     main_bg_ext = "png"
         
@@ -47,11 +42,23 @@ with st.sidebar:
 
 
 if tabs =='Intro':
-    st.latex(r'''
-    a + ar + a r^2 + a r^3 + \cdots + a r^{n-1} =
-    \sum_{k=0}^{n-1} ar^k =
-    a \left(\frac{1-r^{n}}{1-r}\right)
-    ''')
+    col1, col2 = st.columns(2)
+    with col1:
+        st.image(img2)
+    with col2:
+        st.title("FinAdvisor")
+        st.header('Introducción')
+        st.markdown('<div style="text-align: justify;">FinAdvisor es una herramienta que permite generar conclusiones acerca del comportamiento de diferentes acciones a traves del análisis de sentimiento en diferentes plataformas, como plataformas de noticias y twitter, a tráves de este análisis los usuarios podran determinar cual podria ser el comportamiento de las acciones en los próximos días.</div>', unsafe_allow_html=True)
+    
+
+    st.subheader('¿Por qué usar el análisis de sentimientos para las finanzas?')
+    st.markdown('<div style="text-align: justify;">Las finanzas son el estudio de la gestión del dinero, las inversiones y otros instrumentos financieros. Es un aspecto crucial de cualquier negocio u organización, ya que ayuda a garantizar que haya suficiente capital disponible para satisfacer las diversas necesidades y objetivos financieros de la entidad. El análisis de sentimientos, por otro lado, es una rama de la minería de datos que se ocupa de la identificación y análisis de emociones, opiniones y actitudes expresadas en texto o lenguaje hablado. A menudo se usa en finanzas para medir el sentimiento del mercado o de acciones individuales. Hay muchas maneras diferentes de realizar análisis de sentimiento en finanzas. Un método común es usar técnicas de procesamiento de lenguaje natural (NLP) para analizar grandes cantidades de datos de texto, como artículos de noticias o publicaciones en redes sociales, para identificar tendencias y patrones en la forma en que las personas hablan sobre una empresa o mercado en particular. Esto puede hacerse manualmente, por analistas capacitados o con el uso de algoritmos automatizados y modelos de aprendizaje automático. Otro método de análisis de sentimiento en las finanzas es utilizar indicadores financieros y análisis técnico para identificar patrones en el movimiento de los precios de las acciones u otros instrumentos financieros. Esto se puede hacer analizando el volumen de la actividad comercial, el número de compradores y vendedores y la dirección general del mercado. El análisis de sentimiento puede ser una herramienta poderosa en finanzas, ya que permite a los inversores y analistas comprender mejor el mercado y tomar decisiones más informadas sobre dónde asignar su capital. También puede ayudar a identificar riesgos y oportunidades potenciales, y puede usarse para desarrollar estrategias para mitigar o aprovechar estas tendencias. Sin embargo, es importante tener en cuenta que el análisis de sentimientos no es una ciencia perfecta, y siempre es importante considerar múltiples fuentes de información y realizar una debida diligencia exhaustiva antes de tomar cualquier decisión de inversión.</div>', unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader('¿Comó se realiza el análisis de sentimientos?')
+        st.markdown('<div style="text-align: justify;">Se realiza mediante el uso de la libreria NLTK. El kit de herramientas de lenguaje natural (NLTK) es una biblioteca popular de Python para trabajar con datos de lenguaje humano. Proporciona una amplia gama de herramientas y recursos para tareas como tokenización, derivación, lematización, etiquetado de partes del discurso y análisis. Una de las características principales de NLTK es su extensa colección de corpus (grandes cuerpos de datos lingüísticos), que se pueden utilizar para entrenar y evaluar modelos de procesamiento de lenguaje natural. NLTK también incluye una gama de herramientas de preprocesamiento y visualización, así como interfaces para otras bibliotecas y herramientas como WordNet y Treebank. NLTK se usa ampliamente en investigación y educación, y también es una opción popular para proyectos de procesamiento de lenguaje natural en la industria. Está bien documentado y tiene una comunidad de usuarios grande y activa, lo que facilita encontrar ayuda y recursos en línea. En general, NLTK es una biblioteca poderosa y flexible que facilita el trabajo con datos de lenguaje humano en Python. Ya sea que sea un investigador, un estudiante o un desarrollador profesional, NLTK es un recurso valioso para cualquier proyecto de procesamiento de lenguaje natural.</div>', unsafe_allow_html=True)
+    with col2:
+        st.image(img_nltk)
 
 elif tabs == 'Acciones':
     #st.write('Nombre de la opción {}'.format(tabs))
@@ -89,8 +96,6 @@ elif tabs == 'Acciones':
     ### """ + symbols[result.index(tickerSymbol)] + """
     #### """ + names[result.index(tickerSymbol)])
 
-    with open('elements.css') as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 
     
@@ -163,21 +168,15 @@ elif tabs == 'Acciones':
                 use_container_width = True,
                 )
 
+                df_new = tickerDf[['Date', 'Dividends']]
+                df_new.Date = df.Date.astype(str)
+                df_new = df_new.rename(columns={'Date' : 'index'}).set_index('index')
+                
+                #st.area_chart(df_new)
                 st.line_chart(tickerDf.Dividends)
-
-                #st.line_chart(tickerDf.Stock)
+                df_new = tickerDf[['Date', 'Stock Splits']]
                 st.line_chart(tickerDf['Stock Splits'])
 
-                
-        # st.text(tickerDfToday)
-
-    
-
-    # Display the plotly chart on the dashboard
-    
-   
-
-    
     
 
 elif tabs == 'Noticias':

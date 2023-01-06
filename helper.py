@@ -83,12 +83,12 @@ def getAnalysis(score):
     return 'Positive'
 
 @st.cache(allow_output_mutation=True)
-def preprocessing_data(word_query, number_of_tweets, function_option):
+def preprocessing_data(word_query, number_of_tweets, function_option, var_idiom):
 
-  if function_option == "Search By #Tag and Words":
-    posts = tweepy.Cursor(api.search_tweets, q=word_query, count = 200, lang ="es", tweet_mode="extended").items((number_of_tweets))
+  if function_option == "Buscar por #Hashtag o Palabra":
+    posts = tweepy.Cursor(api.search_tweets, q=word_query, count = 200, lang =var_idiom, tweet_mode="extended").items((number_of_tweets))
   
-  if function_option == "Search By Username":
+  if function_option == "Buscar por usuario":
     posts = tweepy.Cursor(api.user_timeline, screen_name=word_query, count = 200, tweet_mode="extended").items((number_of_tweets))
   
   data  = pd.DataFrame([tweet.full_text for tweet in posts], columns=['Tweets'])
@@ -133,6 +133,7 @@ def analyse_mention(data):
     mention = pd.concat([mention["mention_0"]], ignore_index=True)
   
   mention = mention.value_counts().head(10)
+  mention = pd.DataFrame(mention)
   
   return mention
 

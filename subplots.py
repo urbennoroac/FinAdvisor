@@ -10,20 +10,7 @@ def get_candlestick_plot(
         ma2: int,
         ticker: str
 ):
-    '''
-    Create the candlestick chart with two moving avgs + a plot of the volume
-    Parameters
-    ----------
-    df : pd.DataFrame
-        The price dataframe
-    ma1 : int
-        The length of the first moving average (days)
-    ma2 : int
-        The length of the second moving average (days)
-    ticker : str
-        The ticker we are plotting (for the title).
-    '''
-    
+
     fig = make_subplots(
         rows = 2,
         cols = 1,

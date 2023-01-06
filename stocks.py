@@ -119,10 +119,10 @@ def runStocks():
     try:
         st.subheader("Valor de Sentimientos (Hora/Día) - {} Stock".format(ticker))
         description = """
-            The above chart averages the sentiment scores of {} stock hourly and daily.
-            The table below gives each of the most recent headlines of the stock and the negative, neutral, positive and an aggregated sentiment score.
-            The news headlines are obtained from the FinViz website.
-            Sentiments are given by the nltk.sentiment.vader Python library.
+            La gráfica obtiene un promedio del sentimient score de la accion {} por hora y por dia 
+            La tabla por otro lado obtiene los encabezados mas reientes de las acciones y el sentiment score, tanto positivo, negativo o neutral y su promedio.
+            Los encabezados de noticias se obtienen a traves de la pagina de noticias FinVizS
+            Para el análisis de los sentimientos se utilizo la libreria de Python nltk.sentiment.vader
             """.format(ticker)
         st.write(description)
         tab1, tab2, tab3 = st.tabs(["Encabezados Noticias", "Sentimientos por Hora", "Sentimientos por Día"])
