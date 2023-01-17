@@ -2,20 +2,22 @@ def runStocks():
     import streamlit as st
     from urllib.request import urlopen, Request
     from bs4 import BeautifulSoup
+    import altair as alt
+    import yfinance as yf
     import pandas as pd
+    import matplotlib.pyplot as plt   # Para la generación de gráficas a partir de los datos
+    import seaborn as sns    
+    from datetime import date, timedelta
     import plotly
     import plotly.express as px
-    import json # for graph plotting in website
-    # NLTK VADER for sentiment analysis
+    # NLTK VADER para realizar el analisis de sentimientos
     import nltk 
     # Esta libreria permite conocer el sentimiento de las noticias con las que se va a analizar las notas para predecir
     # el sentimiento de los stocks.
     nltk.downloader.download('vader_lexicon')
     from nltk.sentiment.vader import SentimentIntensityAnalyzer
-
-    import subprocess
     from datetime import datetime
-    import os
+
 
     st.markdown('<style>' + open('./style.css').read() + '</style>', unsafe_allow_html=True)
 
@@ -23,9 +25,9 @@ def runStocks():
         url = finviz_url + ticker
         req = Request(url=url,headers={'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:20.0) Gecko/20100101 Firefox/20.0'}) 
         response = urlopen(req)    
+        # Lee los contenidos en el archivo 'HTML'
         # Read the contents of the file into 'html'
         html = BeautifulSoup(response)
-        # Find 'news-table' in the Soup and load it into 'news_table'
         news_table = html.find(id='news-table')
         return news_table
         
@@ -34,35 +36,27 @@ def runStocks():
         parsed_news = []
         
         for x in news_table.findAll('tr'):
-            # occasionally x (below) may be None when the html table is poorly formatted, skip it in try except instead of throwing an error and exiting
-            # may also use an if loop here to check if x is None first	
+           
             try:
-                # read the text from each tr tag into text
-                # get text from a only
                 text = x.a.get_text() 
-                # splite text in the td tag into a list 
                 date_scrape = x.td.text.split()
-                # if the length of 'date_scrape' is 1, load 'time' as the only element
 
                 if len(date_scrape) == 1:
                     time = date_scrape[0]				
-                # else load 'date' as the 1st element and 'time' as the second    
+            
                 else:
                     date = date_scrape[0]
                     time = date_scrape[1]
                 
-                # Append ticker, date, time and headline as a list to the 'parsed_news' list
                 parsed_news.append([date, time, text])        
                 
                 
             except:
                 pass
                 
-        # Set column names
         columns = ['date', 'time', 'Encabezado']
-        # Convert the parsed_news list into a DataFrame called 'parsed_and_scored_news'
+ 
         parsed_news_df = pd.DataFrame(parsed_news, columns=columns)        
-        # Create a pandas datetime object from the strings in 'date' and 'time' column
         parsed_news_df['datetime'] = pd.to_datetime(parsed_news_df['date'] + ' ' + parsed_news_df['time'])
                 
         return parsed_news_df
@@ -112,7 +106,7 @@ def runStocks():
     st.header("Ánalisis de Sentimientos en Noticias")
 
     ticker = st.text_input('Ingresa el Ticker de la acción', 'AAPL').upper()
-
+    
     df = pd.DataFrame({'datetime': datetime.now(), 'ticker': ticker}, index = [0])
 
 
@@ -125,11 +119,38 @@ def runStocks():
             Para el análisis de los sentimientos se utilizo la libreria de Python nltk.sentiment.vader
             """.format(ticker)
         st.write(description)
-        tab1, tab2, tab3 = st.tabs(["Encabezados Noticias", "Sentimientos por Hora", "Sentimientos por Día"])
+        tab1, tab2, tab3, tab4 = st.tabs(["Encabezados Noticias", "Sentimientos por Hora", "Sentimientos por Día", "Correlaciones"])
         news_table = get_news(ticker)
         parsed_news_df = parse_news(news_table)
+        
+        print('Hola')
+        today = date.today()
+
+        d1 = today.strftime("%Y-%m-%d")
+        end_date = d1
+        d2 = date.today() - timedelta(days=360)
+        d2 = d2.strftime("%Y-%m-%d")
+        start_date = d2
+
+        data = yf.download('AAPL', 
+                            start=start_date, 
+                            end=end_date, 
+                            progress=False)
+        data = data.tz_localize(None)
+        data = data.reset_index(drop = False)
+        print(data.head())
+
         #print(parsed_news_df)
         parsed_and_scored_news = score_news(parsed_news_df)
+        print(parsed_and_scored_news)
+        
+        parsed_and_scored_news2 = parsed_and_scored_news.reset_index(drop=False)
+        data2 = pd.concat([parsed_and_scored_news2, data], axis=1, keys=['parsed_and_scored_news2', 'data']).corr().loc['parsed_and_scored_news2', 'data']
+        data3 = pd.concat([parsed_and_scored_news2, data], axis=1, keys=['parsed_and_scored_news2', 'data'])
+        print(data2)
+        print('Data 3')
+        print(data3)
+      
         fig_hourly = plot_hourly_sentiment(parsed_and_scored_news, ticker)
         fig_daily = plot_daily_sentiment(parsed_and_scored_news, ticker) 
         
@@ -140,13 +161,23 @@ def runStocks():
 
         with tab2:
             with st.container():
-                st.header("Sentimientos por Hora")
+                st.header("Mapa de Calor Correlación Scores - Precio Stocks")
                 st.plotly_chart(fig_hourly)
 
         with tab3:
             with st.container():
                 st.header("Sentimientos por Día")
                 st.plotly_chart(fig_daily)
+        
+        with tab4:
+            with st.container():
+                st.header("Correlaciones")
+                fig, ax = plt.subplots()
+                sns.heatmap(data2, ax=ax)
+                st.write(fig)
+                
+        
+        
                     
     except Exception as e:
         print(str(e))

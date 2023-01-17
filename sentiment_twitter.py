@@ -4,9 +4,24 @@ def runSentiment():
     import streamlit as st
     from helper import preprocessing_data, graph_sentiment, analyse_mention, analyse_hastag, download_data
     import altair as alt
+    import datetime as dt
+    import math
+    import plotly.express as px
+
+    import yfinance as yf
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+    import tweepy
+    from matplotlib import style
+    from sklearn import preprocessing
+    from sklearn.linear_model import LinearRegression
+    from sklearn.model_selection import train_test_split
+    from textblob import TextBlob
+
+    import constants as ct
+    from Tweet import Tweet
     
-
-
     st.title("Twitter Sentimental Analysis")
 
     
@@ -105,3 +120,5 @@ def runSentiment():
                     color=alt.Color(field="index", type="nominal"),
                 ).interactive()
             st.altair_chart(c, use_container_width=True)
+    
+        

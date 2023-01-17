@@ -1,13 +1,13 @@
 from st_on_hover_tabs import on_hover_tabs
 import streamlit as st
 import yfinance as yf
-import streamlit as st
 import pandas as pd
 
 from datetime import date
 import base64
 from stocks import runStocks
 from sentiment_twitter import runSentiment
+from predicciones import runPredicciones
 from PIL import Image
 
 from subplots import get_candlestick_plot
@@ -20,7 +20,6 @@ st.markdown('<style>' + open('./style.css').read() + '</style>', unsafe_allow_ht
 
 def set_bg_hack(main_bg):
     
-    # set bg name
     main_bg_ext = "png"
         
     st.markdown(
@@ -36,8 +35,8 @@ def set_bg_hack(main_bg):
     )
 
 with st.sidebar:
-    tabs = on_hover_tabs(tabName=['Intro', 'Acciones', 'Noticias', 'Twitter'], 
-                         iconName=['home', 'price_check', 'newspaper', 'flutter_dash'], default_choice=0)
+    tabs = on_hover_tabs(tabName=['Intro', 'Acciones', 'Noticias', 'Twitter', 'Predicciones'], 
+                         iconName=['home', 'price_check', 'newspaper', 'flutter_dash', 'trending_up'], default_choice=0)
 
 
 
@@ -157,7 +156,6 @@ elif tabs == 'Acciones':
                     step = 1,    
                 )
 
-                # Get the dataframe and add the moving averages
                 df = tickerDf
                 df[f'{ma1}_ma'] = df['Close'].rolling(ma1).mean()
                 df[f'{ma2}_ma'] = df['Close'].rolling(ma2).mean()
@@ -184,4 +182,7 @@ elif tabs == 'Noticias':
 
 elif tabs == 'Twitter':
     runSentiment()
+
+elif tabs == 'Predicciones':
+    runPredicciones()
     
